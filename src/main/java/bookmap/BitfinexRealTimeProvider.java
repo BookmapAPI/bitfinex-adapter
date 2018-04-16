@@ -34,6 +34,13 @@ public class BitfinexRealTimeProvider extends ExternalLiveBaseProvider {
         }
     }
 
+    /*
+    Price should be passed into onDepth method in integer format.
+    Integer value is used to identify the point on price axis
+    and then it is multiplied by pips (price step) to display the actual price.
+
+    We maintain the same logic for onTrade, even though it uses double value.
+     */
     @Override
     public String formatPrice(String alias, double price) {
         OrderbookConfiguration orderbookConfiguration;
@@ -59,6 +66,7 @@ public class BitfinexRealTimeProvider extends ExternalLiveBaseProvider {
     }
 
     private void subscribeOrderBook(String symbol, String exchange, String type, String alias) {
+        //P1 precision is chosen because of optimal aggregation level by price. With P0 there are too many gaps on price axis.
         OrderbookConfiguration orderbookConfiguration =
                 new OrderbookConfiguration(BitfinexCurrencyPair.valueOf(symbol), OrderBookPrecision.P1, OrderBookFrequency.F0, 25);
 
@@ -69,8 +77,7 @@ public class BitfinexRealTimeProvider extends ExternalLiveBaseProvider {
         final BiConsumer<OrderbookConfiguration, OrderbookEntry> orderBookCallback = (orderbookConfig, entry) -> {
             adminListeners.forEach(Layer1ApiAdminListener::onConnectionRestored);
             boolean isBid = entry.getAmount().signum() > 0;
-            int multiplier = PriceConverter.getMultiplier(orderbookConfig);
-            int price = entry.getPrice().multiply(BigDecimal.valueOf(multiplier)).intValue();
+            int price = PriceConverter.convertToInteger(orderbookConfig, entry.getPrice().doubleValue());
             int amount = entry.getAmount().abs().multiply(BigDecimal.valueOf(AMOUNT_MULTIPLIER)).intValue();
             if (entry.getCount().intValue() != 0) {
                 dataListeners.forEach(l -> l.onDepth(alias, isBid, price, amount));
@@ -96,8 +103,7 @@ public class BitfinexRealTimeProvider extends ExternalLiveBaseProvider {
         }
 
         final BiConsumer<BitfinexExecutedTradeSymbol, ExecutedTrade> tradeCallback = (symb, trade) -> {
-            int multiplier = PriceConverter.getMultiplier(orderbookConfiguration);
-            double price = trade.getPrice().multiply(BigDecimal.valueOf(multiplier)).doubleValue();
+            double price = PriceConverter.convertToDouble(orderbookConfiguration, trade.getPrice().doubleValue());
             boolean isOtc = false;
             boolean isBidAgressor = trade.getAmount().signum() > 0;
             int amount = trade.getAmount().abs().multiply(BigDecimal.valueOf(AMOUNT_MULTIPLIER)).intValue();

@@ -24,7 +24,6 @@ public class MBORealTimeProvider extends ExternalLiveBaseProvider {
     private Map<String, RawOrderbookConfiguration> orderBookConfigByAlias = new HashMap<>();
     private Map<String, BitfinexExecutedTradeSymbol> tradeSymbolByAlias = new HashMap<>();
 
-    private static final int AMOUNT_LIMIT_AFTER_MULTIPLICATION = (int) 1e9; // limit is needed to not cause integer overflows
     private static final OrderBookPrecision DEFAULT_RAW_ORDER_BOOK_PRICE_PRECISION = OrderBookPrecision.P1;
 
     private static final HashSet<BitfinexCurrencyPair> supportedPairs = new HashSet<>();

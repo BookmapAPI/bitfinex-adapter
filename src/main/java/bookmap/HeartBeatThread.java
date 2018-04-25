@@ -9,13 +9,15 @@ import velox.api.layer1.common.Log;
 
 import java.util.concurrent.TimeUnit;
 
-public class HeartBeatThread implements Runnable {
+public class HeartBeatThread extends Thread {
 
     private static Logger logger = LoggerFactory.getLogger(HeartBeatThread.class);
 
     private BitfinexApiBroker bitfinexApiBroker;
 
     private static final long CONNECTION_TIMEOUT = TimeUnit.SECONDS.toMillis(60);
+
+    private volatile boolean stopped = false;
 
     public HeartBeatThread(BitfinexApiBroker bitfinexApiBroker) {
         this.bitfinexApiBroker = bitfinexApiBroker;
@@ -24,7 +26,7 @@ public class HeartBeatThread implements Runnable {
     @Override
     public void run() {
         try {
-            while (!Thread.interrupted()) {
+            while (!stopped && !Thread.interrupted()) {
                 Thread.sleep(TimeUnit.SECONDS.toMillis(5));
                 WebsocketClientEndpoint websocketEndpoint = bitfinexApiBroker.getWebsocketEndpoint();
 
@@ -54,6 +56,11 @@ public class HeartBeatThread implements Runnable {
             Thread.currentThread().interrupt();
             return;
         }
+    }
+
+
+    public void shutDown() {
+        stopped = true;
     }
 
     private boolean checkConnectionTimeout() {

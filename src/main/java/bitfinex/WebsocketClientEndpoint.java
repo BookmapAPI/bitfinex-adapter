@@ -62,7 +62,7 @@ public class WebsocketClientEndpoint implements Closeable {
 
     @OnError
     public void onError(final Session userSession, Throwable throwable) {
-        Log.error("Errorcase", throwable);
+        Log.error("Error occurred", throwable);
     }
 
     @OnOpen

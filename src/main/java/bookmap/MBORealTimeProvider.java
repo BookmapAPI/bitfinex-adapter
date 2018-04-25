@@ -5,41 +5,43 @@ import bitfinex.entity.*;
 import bitfinex.manager.ExecutedTradesManager;
 import velox.api.layer0.live.ExternalLiveBaseProvider;
 import velox.api.layer1.Layer1ApiAdminListener;
-import velox.api.layer1.common.Log;
 import velox.api.layer1.data.*;
 import velox.api.layer1.layers.utils.OrderBook;
 import velox.api.layer1.layers.utils.OrderByOrderBook;
 
 import java.math.BigDecimal;
-import java.math.BigInteger;
 import java.util.*;
 import java.util.function.BiConsumer;
 
 public class MBORealTimeProvider extends ExternalLiveBaseProvider {
 
     private BitfinexApiBroker bitfinexApiBroker = new BitfinexApiBroker();
+    private HeartBeatThread heartBeatThread = new HeartBeatThread(bitfinexApiBroker);
+
 
     private final HashSet<String> aliases = new HashSet<>();
 
     private Map<String, RawOrderbookConfiguration> orderBookConfigByAlias = new HashMap<>();
     private Map<String, BitfinexExecutedTradeSymbol> tradeSymbolByAlias = new HashMap<>();
 
-    private int AMOUNT_MULTIPLIER = (int) 1e4; // bookmap accepts integer amounts, but bitfinex returns float values. we will save 4 digits after coma
-    private int AMOUNT_LIMIT_AFTER_MULTIPLICATION = (int) 1e9; // limit is needed to not cause integer overflows
-    private OrderBookPrecision DEFAULT_RAW_ORDER_BOOK_PRICE_PRECISION = OrderBookPrecision.P1;
+    private static final int AMOUNT_LIMIT_AFTER_MULTIPLICATION = (int) 1e9; // limit is needed to not cause integer overflows
+    private static final OrderBookPrecision DEFAULT_RAW_ORDER_BOOK_PRICE_PRECISION = OrderBookPrecision.P1;
 
     private static final HashSet<BitfinexCurrencyPair> supportedPairs = new HashSet<>();
+    private static final HashMap<BitfinexCurrencyPair, Integer> amountMultiPliers = new HashMap<>();
 
     static {
         supportedPairs.add(BitfinexCurrencyPair.BTC_USD);
         supportedPairs.add(BitfinexCurrencyPair.IOT_USD);
+
+        amountMultiPliers.put(BitfinexCurrencyPair.BTC_USD, (int) 1e4);
+        amountMultiPliers.put(BitfinexCurrencyPair.IOT_USD, (int) 1e1);
     }
 
     @Override
     public void login(LoginData loginData) {
         try {
             bitfinexApiBroker.connect();
-            Thread heartBeatThread = new Thread(new HeartBeatThread(bitfinexApiBroker));
             heartBeatThread.start();
             adminListeners.forEach(Layer1ApiAdminListener::onLoginSuccessful);
         } catch (APIException e) {
@@ -88,7 +90,8 @@ public class MBORealTimeProvider extends ExternalLiveBaseProvider {
 
         double pips = PriceConverter.getPriceStep(orderbookConfiguration.getCurrencyPair(), DEFAULT_RAW_ORDER_BOOK_PRICE_PRECISION);
 
-        InstrumentInfoCrypto instrumentInfoCrypto = new InstrumentInfoCrypto(symbol, exchange, type, pips, 1, "", AMOUNT_MULTIPLIER);
+        int amountMultiplier = amountMultiPliers.get(orderbookConfiguration.getCurrencyPair());
+        InstrumentInfoCrypto instrumentInfoCrypto = new InstrumentInfoCrypto(symbol, exchange, type, pips, 1, "", amountMultiplier);
         instrumentListeners.forEach(i -> i.onInstrumentAdded(alias, instrumentInfoCrypto));
 
         OrderByOrderBook orderByOrderBook = new OrderByOrderBook();
@@ -102,22 +105,19 @@ public class MBORealTimeProvider extends ExternalLiveBaseProvider {
     }
 
     private void registerOrderBookUpdateCallback(String alias, RawOrderbookConfiguration orderbookConfiguration, OrderByOrderBook orderBook) {
-        BiConsumer<RawOrderbookConfiguration, RawOrderbookEntry> orderBookCallback = (orderbookConfig, entry) -> {
-            notifyOrderBookUpdate(alias, orderbookConfig, entry, orderBook);
-        };
+        BiConsumer<RawOrderbookConfiguration, RawOrderbookEntry> orderBookCallback =
+                (orderbookConfig, entry) -> notifyOrderBookUpdate(alias, orderbookConfig, entry, orderBook);
         bitfinexApiBroker.getRawOrderbookManager().registerOrderbookCallback(orderbookConfiguration, orderBookCallback);
     }
 
 
     private void registerOrderBookSnapshotCallback(String alias, RawOrderbookConfiguration orderbookConfiguration, OrderByOrderBook orderBook) {
         BiConsumer<RawOrderbookConfiguration, List<RawOrderbookEntry>> orderBookSnapshopCallback = (orderbookConfig, entries) -> {
-            Log.info("snapshot start");
             clearLevels(alias, orderBook);
 
             for (RawOrderbookEntry entry : entries) {
                 notifyOrderBookUpdate(alias, orderbookConfig, entry, orderBook);
             }
-            Log.info("snapshot end");
         };
         bitfinexApiBroker.getRawOrderbookManager().registerOrderbookSnapshotCallback(orderbookConfiguration, orderBookSnapshopCallback);
     }
@@ -126,29 +126,20 @@ public class MBORealTimeProvider extends ExternalLiveBaseProvider {
         long orderId = entry.getOrderId();
         boolean isBid = entry.getAmount().signum() > 0;
         int price = PriceConverter.roundToInteger(orderbookConfiguration.getCurrencyPair(), DEFAULT_RAW_ORDER_BOOK_PRICE_PRECISION, entry.getPrice(), isBid);
-        int amount = getAmount(entry.getAmount());
-        Log.info("Processing entry. price = " + price + " orderId = " + orderId + " amount = " + amount + " isbid = " + isBid);
-//        Log.info(entry.toString());
+        int amount = getAmount(orderbookConfiguration.getCurrencyPair(), entry.getAmount());
         if (price != 0) {
             if (orderBook.hasOrder(orderId)) {
-                Log.info("updatecase");
                 OrderByOrderBook.OrderUpdateResult orderUpdateResult = orderBook.updateOrder(orderId, price, amount);
                 dataListeners.forEach(l -> l.onDepth(alias, isBid, orderUpdateResult.fromPrice, (int) orderUpdateResult.fromSize));
-                Log.info("fromPrice = " + orderUpdateResult.fromPrice + " fromsize = " + orderUpdateResult.fromSize);
                 dataListeners.forEach(l -> l.onDepth(alias, isBid, price, (int) orderUpdateResult.toSize));
-                Log.info("tozite = " + orderUpdateResult.toSize);
             } else {
-                Log.info("addcase");
                 long newAmount = orderBook.addOrder(orderId, isBid, price, amount);
                 dataListeners.forEach(l -> l.onDepth(alias, isBid, orderBook.getLastPriceOfOrder(orderId), (int) newAmount));
-                Log.info("newamount = " + newAmount);
             }
         } else {
-            Log.info("removecase");
             int removedOrderPrice = orderBook.getLastPriceOfOrder(orderId);
             long newAmount = orderBook.removeOrder(orderId);
             dataListeners.forEach(l -> l.onDepth(alias, isBid, removedOrderPrice, (int) newAmount));
-            Log.info("newamount = " + newAmount);
         }
     }
 
@@ -163,13 +154,11 @@ public class MBORealTimeProvider extends ExternalLiveBaseProvider {
         for (int i = 0; i < bidLevels.length; i++) {
             int idx = i;
             dataListeners.forEach(l -> l.onDepth(alias, true, bidLevels[idx], 0));
-            Log.info("something removed");
         }
 
         for (int i = 0; i < askLevels.length; i++) {
             int idx = i;
             dataListeners.forEach(l -> l.onDepth(alias, false, askLevels[idx], 0));
-            Log.info("something removed1");
         }
 
     }
@@ -182,7 +171,7 @@ public class MBORealTimeProvider extends ExternalLiveBaseProvider {
             double price = PriceConverter.convertToDouble(symb.getBitfinexCurrencyPair(), DEFAULT_RAW_ORDER_BOOK_PRICE_PRECISION, trade.getPrice().doubleValue());
             boolean isOtc = false;
             boolean isBidAgressor = trade.getAmount().signum() > 0;
-            int amount = getAmount(trade.getAmount());
+            int amount = getAmount(symb.getBitfinexCurrencyPair(), trade.getAmount());
 
             dataListeners.forEach(l -> l.onTrade(alias, price, amount, new TradeInfo(isOtc, isBidAgressor)));
         };
@@ -225,6 +214,7 @@ public class MBORealTimeProvider extends ExternalLiveBaseProvider {
 
     @Override
     public void close() {
+        heartBeatThread.shutDown();
         bitfinexApiBroker.close();
     }
 
@@ -232,12 +222,11 @@ public class MBORealTimeProvider extends ExternalLiveBaseProvider {
         return "Bitfinex/" + symbol;
     }
 
-    private int getAmount(BigDecimal amount) {
+    private int getAmount(BitfinexCurrencyPair pair, BigDecimal amount) {
         return amount
                 .abs()
-                .multiply(BigDecimal.valueOf(AMOUNT_MULTIPLIER))
+                .multiply(BigDecimal.valueOf(amountMultiPliers.get(pair)))
                 .toBigInteger()
-                .min(BigInteger.valueOf(AMOUNT_LIMIT_AFTER_MULTIPLICATION))
                 .intValue();
     }
 

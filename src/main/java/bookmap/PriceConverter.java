@@ -3,7 +3,6 @@ package bookmap;
 import bitfinex.entity.BitfinexCurrencyPair;
 import bitfinex.entity.OrderBookPrecision;
 import bitfinex.entity.OrderbookConfiguration;
-import velox.api.layer1.common.Log;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -47,14 +46,6 @@ public class PriceConverter {
         return priceStep.get(currencyPair)[index];
     }
 
-//    public static int roundBidToInteger(BitfinexCurrencyPair currencyPair, OrderBookPrecision precision, BigDecimal price) {
-//        return roundToInteger(currencyPair, precision, price, true);
-//    }
-//
-//    public static int roundAskToInteger(BitfinexCurrencyPair currencyPair, OrderBookPrecision precision, BigDecimal price) {
-//        return roundToInteger(currencyPair, precision, price, false);
-//    }
-
     public static int roundToInteger(BitfinexCurrencyPair currencyPair, OrderBookPrecision precision, BigDecimal price, boolean isBid) {
         double step = getPriceStep(currencyPair, precision);
         int figuresAfterComa = 0;
@@ -74,9 +65,7 @@ public class PriceConverter {
         } else {
             roundingMode = RoundingMode.CEILING;
         }
-        Log.info("Rounding. isbid = " + isBid + " price = " + price.toString());
         price = price.abs().setScale(figuresAfterComa, roundingMode);
-        Log.info("After rounding price = " + price.toString());
         return convertToInteger(currencyPair, precision, price.doubleValue());
     }
 }

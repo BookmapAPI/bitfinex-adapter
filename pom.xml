@@ -44,6 +44,15 @@
             <scope>system</scope>
             <systemPath>${project.basedir}/src/main/resources/lib/bm-l1api.jar</systemPath>
         </dependency>
+
+        <dependency>
+            <groupId>bookmap</groupId>
+            <artifactId>L1api-javadoc</artifactId>
+            <version>1.0</version>
+            <scope>system</scope>
+            <systemPath>${project.basedir}/src/main/resources/lib/bm-l1api-javadoc.jar</systemPath>
+        </dependency>
+
     </dependencies>
 
     <build>

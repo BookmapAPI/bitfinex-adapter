@@ -35,6 +35,7 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import velox.api.layer1.common.Log;
 
 import java.io.Closeable;
 import java.net.URI;
@@ -292,6 +293,7 @@ public class BitfinexApiBroker implements Closeable {
 
             return true;
         } catch (Exception e) {
+            Log.error("Got exception while reconnect", e);
             logger.error("Got exception while reconnect", e);
             websocketEndpoint.close();
             return false;

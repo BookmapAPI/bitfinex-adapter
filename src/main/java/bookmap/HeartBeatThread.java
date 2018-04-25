@@ -27,7 +27,7 @@ public class HeartBeatThread extends Thread {
     public void run() {
         try {
             while (!stopped && !Thread.interrupted()) {
-                Thread.sleep(TimeUnit.SECONDS.toMillis(5));
+                Thread.sleep(TimeUnit.SECONDS.toMillis(20));
                 WebsocketClientEndpoint websocketEndpoint = bitfinexApiBroker.getWebsocketEndpoint();
 
                 if (websocketEndpoint == null) {
@@ -67,7 +67,6 @@ public class HeartBeatThread extends Thread {
         long heartbeatTimeout = bitfinexApiBroker.getLastMessageTime().get() + CONNECTION_TIMEOUT;
 
         if (heartbeatTimeout < System.currentTimeMillis()) {
-            logger.error("Heartbeat timeout reconnecting");
             return true;
         }
 

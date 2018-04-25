@@ -9,42 +9,23 @@ import javax.websocket.CloseReason.CloseCodes;
 import java.io.Closeable;
 import java.io.IOException;
 import java.net.URI;
-import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.function.Consumer;
 
 @ClientEndpoint
 public class WebsocketClientEndpoint implements Closeable {
 
-    /**
-     * The user session
-     */
     private Session userSession = null;
 
-    /**
-     * The callback consumer
-     */
-    private final List<Consumer<String>> callbackConsumer;
+    private final List<Consumer<String>> callbackConsumer = new CopyOnWriteArrayList<>();
 
-    /**
-     * The wait for connection latch
-     */
-    private final CountDownLatch connectLatch = new CountDownLatch(1);
-
-    /**
-     * The endpoint URL
-     */
     private final URI endpointURI;
 
-    /**
-     * The Logger
-     */
     private final static Logger logger = LoggerFactory.getLogger(WebsocketClientEndpoint.class);
 
     public WebsocketClientEndpoint(final URI endpointURI) {
         this.endpointURI = endpointURI;
-        this.callbackConsumer = new ArrayList<>();
     }
 
     /**
@@ -57,7 +38,6 @@ public class WebsocketClientEndpoint implements Closeable {
     public void connect() throws DeploymentException, IOException, InterruptedException {
         final WebSocketContainer container = ContainerProvider.getWebSocketContainer();
         this.userSession = container.connectToServer(this, endpointURI);
-        connectLatch.await();
     }
 
     @OnError
@@ -68,22 +48,16 @@ public class WebsocketClientEndpoint implements Closeable {
     @OnOpen
     public void onOpen(final Session userSession) {
         logger.info("Websocket is now open");
-        connectLatch.countDown();
     }
 
     @OnClose
     public void onClose(final Session userSession, final CloseReason reason) {
         logger.info("Closing websocket: {}", reason);
-        this.userSession = null;
     }
 
     @OnMessage(maxMessageSize = 1048576)
     public void onMessage(final String message) {
-
-        // Execute callbacks in another thread
-        synchronized (callbackConsumer) {
-            callbackConsumer.forEach((c) -> c.accept(message));
-        }
+        callbackConsumer.forEach((c) -> c.accept(message));
     }
 
     /**
@@ -112,9 +86,7 @@ public class WebsocketClientEndpoint implements Closeable {
      * @param consumer
      */
     public void addConsumer(final Consumer<String> consumer) {
-        synchronized (callbackConsumer) {
-            callbackConsumer.add(consumer);
-        }
+        callbackConsumer.add(consumer);
     }
 
     /**
@@ -124,9 +96,7 @@ public class WebsocketClientEndpoint implements Closeable {
      * @return
      */
     public boolean removeConsumer(final Consumer<String> consumer) {
-        synchronized (callbackConsumer) {
-            return callbackConsumer.remove(consumer);
-        }
+        return callbackConsumer.remove(consumer);
     }
 
     /**
@@ -143,8 +113,6 @@ public class WebsocketClientEndpoint implements Closeable {
         } catch (Throwable e) {
             logger.error("Got exception while closing socket", e);
         }
-
-        userSession = null;
     }
 
     /**
@@ -153,6 +121,6 @@ public class WebsocketClientEndpoint implements Closeable {
      * @return
      */
     public boolean isConnected() {
-        return userSession != null;
+        return userSession.isOpen();
     }
 }

@@ -135,7 +135,7 @@ public class MBORealTimeProvider extends ExternalLiveBaseProvider {
                 long newAmount = orderBook.addOrder(orderId, isBid, price, amount);
                 dataListeners.forEach(l -> l.onDepth(alias, isBid, orderBook.getLastPriceOfOrder(orderId), (int) newAmount));
             }
-        } else {
+        } else if (orderBook.hasOrder(orderId)) {
             int removedOrderPrice = orderBook.getLastPriceOfOrder(orderId);
             long newAmount = orderBook.removeOrder(orderId);
             dataListeners.forEach(l -> l.onDepth(alias, isBid, removedOrderPrice, (int) newAmount));
@@ -159,6 +159,8 @@ public class MBORealTimeProvider extends ExternalLiveBaseProvider {
             int idx = i;
             dataListeners.forEach(l -> l.onDepth(alias, false, askLevels[idx], 0));
         }
+
+        orderByOrderBook.getAllIds().forEach(orderByOrderBook::removeOrder);
 
     }
 

@@ -134,6 +134,13 @@ public enum BitfinexCurrencyPair {
         throw new IllegalArgumentException("Unable to find currency pair for: " + symbolString);
     }
 
+    public static boolean contains(String s) {
+        for (BitfinexCurrencyPair pair : values()) {
+            if (pair.name().equals(s)) return true;
+        }
+        return false;
+    }
+
     public String toBitfinexString() {
         return "t" + toString().replace("_", "");
     }

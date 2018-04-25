@@ -24,27 +24,32 @@ import bitfinex.entity.APIException;
 import bitfinex.entity.OrderbookConfiguration;
 import bitfinex.entity.OrderbookEntry;
 
-import java.util.concurrent.ExecutorService;
+import java.util.List;
 import java.util.function.BiConsumer;
 
 public class OrderbookManager {
 
     private final BiConsumerCallbackManager<OrderbookConfiguration, OrderbookEntry> channelCallbacks;
-
-    private final ExecutorService executorService;
+    private final BiConsumerCallbackManager<OrderbookConfiguration, List<OrderbookEntry>> snapshotCallbacks;
 
     private final BitfinexApiBroker bitfinexApiBroker;
 
     public OrderbookManager(final BitfinexApiBroker bitfinexApiBroker) {
         this.bitfinexApiBroker = bitfinexApiBroker;
-        this.executorService = bitfinexApiBroker.getExecutorService();
-        this.channelCallbacks = new BiConsumerCallbackManager<>(executorService);
+        this.channelCallbacks = new BiConsumerCallbackManager<>();
+        this.snapshotCallbacks = new BiConsumerCallbackManager<>();
     }
 
     public void registerOrderbookCallback(final OrderbookConfiguration orderbookConfiguration,
                                           final BiConsumer<OrderbookConfiguration, OrderbookEntry> callback) {
 
         channelCallbacks.registerCallback(orderbookConfiguration, callback);
+    }
+
+    public void registerOrderbookSnapshotCallback(final OrderbookConfiguration orderbookConfiguration,
+                                                  final BiConsumer<OrderbookConfiguration, List<OrderbookEntry>> callback) {
+
+        snapshotCallbacks.registerCallback(orderbookConfiguration, callback);
     }
 
     public boolean removeOrderbookCallback(final OrderbookConfiguration orderbookConfiguration,
@@ -77,7 +82,11 @@ public class OrderbookManager {
 
     public void handleNewOrderbookEntry(final OrderbookConfiguration configuration,
                                         final OrderbookEntry entry) {
-
         channelCallbacks.handleEvent(configuration, entry);
+    }
+
+    public void handleOrderbookSnapshot(final OrderbookConfiguration configuration,
+                                        final List<OrderbookEntry> entry) {
+        snapshotCallbacks.handleEvent(configuration, entry);
     }
 }

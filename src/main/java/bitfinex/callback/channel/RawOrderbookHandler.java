@@ -25,6 +25,8 @@ import bitfinex.entity.RawOrderbookEntry;
 import com.google.gson.JsonArray;
 
 import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.List;
 
 public class RawOrderbookHandler implements ChannelCallbackHandler {
 
@@ -38,28 +40,34 @@ public class RawOrderbookHandler implements ChannelCallbackHandler {
 
         // Snapshots contain multiple Orderbook entries, updates only one
         if (jsonArray.get(0) instanceof JsonArray) {
-            for (int pos = 0; pos < jsonArray.size(); pos++) {
-                final JsonArray parts = jsonArray.get(pos).getAsJsonArray();
-                handleEntry(bitfinexApiBroker, configuration, parts);
-            }
+            handleSnapshot(bitfinexApiBroker, jsonArray, configuration);
         } else {
             handleEntry(bitfinexApiBroker, configuration, jsonArray);
         }
-
-
     }
+
+    private void handleSnapshot(BitfinexApiBroker bitfinexApiBroker, JsonArray jsonArray, RawOrderbookConfiguration configuration) {
+        List<RawOrderbookEntry> entries = new ArrayList<>();
+        for (int pos = 0; pos < jsonArray.size(); pos++) {
+            final JsonArray parts = jsonArray.get(pos).getAsJsonArray();
+            RawOrderbookEntry rawOrderbookEntry = parseRawOrderbookEntry(parts);
+            entries.add(rawOrderbookEntry);
+        }
+        bitfinexApiBroker.getRawOrderbookManager().handleOrderbookSnapshot(configuration, entries);
+    }
+
 
     private void handleEntry(final BitfinexApiBroker bitfinexApiBroker,
                              final RawOrderbookConfiguration configuration,
                              final JsonArray jsonArray) {
-
-        final long orderId = jsonArray.get(0).getAsLong();
-        final BigDecimal price = jsonArray.get(1).getAsBigDecimal();
-        final BigDecimal amount = jsonArray.get(2).getAsBigDecimal();
-
-        final RawOrderbookEntry orderbookEntry = new RawOrderbookEntry(orderId, price, amount);
-
+        final RawOrderbookEntry orderbookEntry = parseRawOrderbookEntry(jsonArray);
         bitfinexApiBroker.getRawOrderbookManager().handleNewOrderbookEntry(configuration, orderbookEntry);
     }
 
+    private RawOrderbookEntry parseRawOrderbookEntry(JsonArray jsonArray) {
+        long orderId = jsonArray.get(0).getAsLong();
+        BigDecimal price = jsonArray.get(1).getAsBigDecimal();
+        BigDecimal amount = jsonArray.get(2).getAsBigDecimal();
+        return new RawOrderbookEntry(orderId, price, amount);
+    }
 }

@@ -25,8 +25,7 @@ import bitfinex.callback.command.CommandCallbackHandler;
 import bitfinex.callback.command.DoNothingCommandCallback;
 import bitfinex.callback.command.SubscribedCallback;
 import bitfinex.callback.command.UnsubscribedCallback;
-import bitfinex.commands.AbstractAPICommand;
-import bitfinex.commands.CommandException;
+import bitfinex.commands.*;
 import bitfinex.entity.*;
 import bitfinex.manager.ExecutedTradesManager;
 import bitfinex.manager.OrderbookManager;
@@ -41,15 +40,14 @@ import java.io.Closeable;
 import java.net.URI;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Consumer;
 
 public class BitfinexApiBroker implements Closeable {
 
     public final static String BITFINEX_URI = "wss://api.bitfinex.com/ws/2";
 
-    private final Consumer<String> apiCallback = ((c) -> websocketCallback(c));
+    private final Consumer<String> apiCallback = ((message) -> websocketCallback(message));
 
     private WebsocketClientEndpoint websocketEndpoint;
 
@@ -63,12 +61,11 @@ public class BitfinexApiBroker implements Closeable {
 
     private Map<String, CommandCallbackHandler> commandCallbacks;
 
-    private final ExecutorService executorService;
+    private AtomicLong lastMessageTime = new AtomicLong();
 
     private final static Logger logger = LoggerFactory.getLogger(BitfinexApiBroker.class);
 
     public BitfinexApiBroker() {
-        this.executorService = Executors.newFixedThreadPool(10);
         this.channelIdSymbolMap = new HashMap<>();
         this.orderbookManager = new OrderbookManager(this);
         this.rawOrderbookManager = new RawOrderbookManager(this);
@@ -102,10 +99,6 @@ public class BitfinexApiBroker implements Closeable {
             websocketEndpoint.close();
             websocketEndpoint = null;
         }
-
-        if (executorService != null) {
-            executorService.shutdown();
-        }
     }
 
     public void sendCommand(final AbstractAPICommand apiCommand) {
@@ -124,7 +117,7 @@ public class BitfinexApiBroker implements Closeable {
 
     private void websocketCallback(final String message) {
         logger.debug("Got message: {}", message);
-
+        updateLastMessageTime();
         if (message.startsWith("{")) {
             handleCommandCallback(message);
         } else if (message.startsWith("[")) {
@@ -132,6 +125,10 @@ public class BitfinexApiBroker implements Closeable {
         } else {
             logger.error("Got unknown callback: {}", message);
         }
+    }
+
+    private void updateLastMessageTime() {
+        lastMessageTime.set(System.currentTimeMillis());
     }
 
     private void handleCommandCallback(final String message) {
@@ -268,8 +265,8 @@ public class BitfinexApiBroker implements Closeable {
         return false;
     }
 
-    public ExecutorService getExecutorService() {
-        return executorService;
+    public AtomicLong getLastMessageTime() {
+        return lastMessageTime;
     }
 
     public OrderbookManager getOrderbookManager() {
@@ -282,5 +279,45 @@ public class BitfinexApiBroker implements Closeable {
 
     public ExecutedTradesManager getExecutedTradesManager() {
         return executedTradesManager;
+    }
+
+    public synchronized boolean reconnect() {
+        try {
+            logger.info("Performing reconnect");
+            websocketEndpoint.close();
+            websocketEndpoint.connect();
+
+            resubscribeChannels();
+            updateLastMessageTime();
+
+            return true;
+        } catch (Exception e) {
+            logger.error("Got exception while reconnect", e);
+            websocketEndpoint.close();
+            return false;
+        }
+    }
+
+    private void resubscribeChannels() throws InterruptedException, APIException {
+        final Map<Integer, BitfinexStreamSymbol> oldChannelIdSymbolMap = new HashMap<>();
+
+        synchronized (channelIdSymbolMap) {
+            oldChannelIdSymbolMap.putAll(channelIdSymbolMap);
+            channelIdSymbolMap.clear();
+            channelIdSymbolMap.notifyAll();
+        }
+
+        // Resubscribe channels
+        for (BitfinexStreamSymbol symbol : oldChannelIdSymbolMap.values()) {
+            if (symbol instanceof BitfinexExecutedTradeSymbol) {
+                sendCommand(new SubscribeTradesCommand((BitfinexExecutedTradeSymbol) symbol));
+            } else if (symbol instanceof OrderbookConfiguration) {
+                sendCommand(new SubscribeOrderbookCommand((OrderbookConfiguration) symbol));
+            } else if (symbol instanceof RawOrderbookConfiguration) {
+                sendCommand(new SubscribeRawOrderbookCommand((RawOrderbookConfiguration) symbol));
+            } else {
+                logger.error("Unknown stream symbol: {}", symbol);
+            }
+        }
     }
 }

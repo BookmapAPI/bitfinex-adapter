@@ -2,6 +2,7 @@ package bitfinex;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import velox.api.layer1.common.Log;
 
 import javax.websocket.*;
 import javax.websocket.CloseReason.CloseCodes;
@@ -59,6 +60,11 @@ public class WebsocketClientEndpoint implements Closeable {
         connectLatch.await();
     }
 
+    @OnError
+    public void onError(final Session userSession, Throwable throwable) {
+        Log.error("Errorcase", throwable);
+    }
+
     @OnOpen
     public void onOpen(final Session userSession) {
         logger.info("Websocket is now open");
@@ -78,11 +84,6 @@ public class WebsocketClientEndpoint implements Closeable {
         synchronized (callbackConsumer) {
             callbackConsumer.forEach((c) -> c.accept(message));
         }
-    }
-
-    @OnError
-    public void onError(final Session session, final Throwable t) {
-        logger.error("OnError called {}", t);
     }
 
     /**

@@ -91,9 +91,7 @@ public class OrderbookConfiguration implements BitfinexStreamSymbol {
             return false;
         if (orderBookPrecision != other.orderBookPrecision)
             return false;
-        if (pricePoints != other.pricePoints)
-            return false;
-        return true;
+        return pricePoints == other.pricePoints;
     }
 
     public static OrderbookConfiguration fromJSON(final JsonObject jsonObject) {

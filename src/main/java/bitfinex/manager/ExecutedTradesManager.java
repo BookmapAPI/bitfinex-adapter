@@ -7,20 +7,16 @@ import bitfinex.entity.APIException;
 import bitfinex.entity.BitfinexExecutedTradeSymbol;
 import bitfinex.entity.ExecutedTrade;
 
-import java.util.concurrent.ExecutorService;
 import java.util.function.BiConsumer;
 
 public class ExecutedTradesManager {
     private final BiConsumerCallbackManager<BitfinexExecutedTradeSymbol, ExecutedTrade> tradesCallbacks;
 
-    private final ExecutorService executorService;
-
     private final BitfinexApiBroker bitfinexApiBroker;
 
     public ExecutedTradesManager(final BitfinexApiBroker bitfinexApiBroker) {
         this.bitfinexApiBroker = bitfinexApiBroker;
-        this.executorService = bitfinexApiBroker.getExecutorService();
-        this.tradesCallbacks = new BiConsumerCallbackManager<>(executorService);
+        this.tradesCallbacks = new BiConsumerCallbackManager<>();
     }
 
     public void registerTradeCallback(final BitfinexExecutedTradeSymbol tradeSymbol,

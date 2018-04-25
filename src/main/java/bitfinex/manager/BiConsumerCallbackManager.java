@@ -23,19 +23,11 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ExecutorService;
 import java.util.function.BiConsumer;
 
 public class BiConsumerCallbackManager<S, T> {
 
-    private final Map<S, List<BiConsumer<S, T>>> callbacks;
-
-    private final ExecutorService executorService;
-
-    public BiConsumerCallbackManager(final ExecutorService executorService) {
-        this.executorService = executorService;
-        this.callbacks = new HashMap<>();
-    }
+    private final Map<S, List<BiConsumer<S, T>>> callbacks = new HashMap<>();
 
     public void registerCallback(final S symbol, final BiConsumer<S, T> callback) {
 
@@ -74,28 +66,6 @@ public class BiConsumerCallbackManager<S, T> {
         }
     }
 
-    public void handleEventsList(final S symbol, final List<T> elements) {
-
-        final List<BiConsumer<S, T>> callbackList = callbacks.get(symbol);
-
-        if (callbackList == null) {
-            return;
-        }
-
-        synchronized (callbackList) {
-            if (callbackList.isEmpty()) {
-                return;
-            }
-
-            // Notify callbacks synchronously, to preserve the order of events
-            for (final T element : elements) {
-                callbackList.forEach((c) -> {
-                    c.accept(symbol, element);
-                });
-            }
-        }
-    }
-
     public void handleEvent(final S symbol, final T element) {
 
         final List<BiConsumer<S, T>> callbackList = callbacks.get(symbol);
@@ -110,8 +80,7 @@ public class BiConsumerCallbackManager<S, T> {
             }
 
             callbackList.forEach((c) -> {
-                final Runnable runnable = () -> c.accept(symbol, element);
-                executorService.submit(runnable);
+                c.accept(symbol, element);
             });
         }
     }

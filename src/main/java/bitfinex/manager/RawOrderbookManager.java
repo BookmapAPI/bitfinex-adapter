@@ -24,27 +24,30 @@ import bitfinex.entity.APIException;
 import bitfinex.entity.RawOrderbookConfiguration;
 import bitfinex.entity.RawOrderbookEntry;
 
-import java.util.concurrent.ExecutorService;
+import java.util.List;
 import java.util.function.BiConsumer;
 
 public class RawOrderbookManager {
 
     private final BiConsumerCallbackManager<RawOrderbookConfiguration, RawOrderbookEntry> channelCallbacks;
-
-    private final ExecutorService executorService;
+    private final BiConsumerCallbackManager<RawOrderbookConfiguration, List<RawOrderbookEntry>> snapshotCallbacks;
 
     private final BitfinexApiBroker bitfinexApiBroker;
 
     public RawOrderbookManager(final BitfinexApiBroker bitfinexApiBroker) {
         this.bitfinexApiBroker = bitfinexApiBroker;
-        this.executorService = bitfinexApiBroker.getExecutorService();
-        this.channelCallbacks = new BiConsumerCallbackManager<>(executorService);
+        this.channelCallbacks = new BiConsumerCallbackManager<>();
+        this.snapshotCallbacks = new BiConsumerCallbackManager<>();
     }
 
     public void registerOrderbookCallback(final RawOrderbookConfiguration orderbookConfiguration,
-                                          final BiConsumer<RawOrderbookConfiguration, RawOrderbookEntry> callback) throws APIException {
-
+                                          final BiConsumer<RawOrderbookConfiguration, RawOrderbookEntry> callback) {
         channelCallbacks.registerCallback(orderbookConfiguration, callback);
+    }
+
+    public void registerOrderbookSnapshotCallback(final RawOrderbookConfiguration orderbookConfiguration,
+                                                  final BiConsumer<RawOrderbookConfiguration, List<RawOrderbookEntry>> callback) {
+        snapshotCallbacks.registerCallback(orderbookConfiguration, callback);
     }
 
     public boolean removeOrderbookCallback(final RawOrderbookConfiguration orderbookConfiguration,
@@ -78,5 +81,10 @@ public class RawOrderbookManager {
     public void handleNewOrderbookEntry(final RawOrderbookConfiguration configuration,
                                         final RawOrderbookEntry entry) {
         channelCallbacks.handleEvent(configuration, entry);
+    }
+
+    public void handleOrderbookSnapshot(final RawOrderbookConfiguration configuration,
+                                        final List<RawOrderbookEntry> entry) {
+        snapshotCallbacks.handleEvent(configuration, entry);
     }
 }

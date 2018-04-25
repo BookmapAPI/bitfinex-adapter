@@ -25,6 +25,8 @@ import bitfinex.entity.OrderbookEntry;
 import com.google.gson.JsonArray;
 
 import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.List;
 
 public class OrderbookHandler implements ChannelCallbackHandler {
 
@@ -33,15 +35,11 @@ public class OrderbookHandler implements ChannelCallbackHandler {
                                   final BitfinexStreamSymbol channelSymbol, final JsonArray jsonArray) throws APIException {
 
         final OrderbookConfiguration configuration = (OrderbookConfiguration) channelSymbol;
-
         // Example: [13182,1,-0.1]
 
         // Snapshots contain multiple Orderbook entries, updates only one
         if (jsonArray.get(0) instanceof JsonArray) {
-            for (int pos = 0; pos < jsonArray.size(); pos++) {
-                final JsonArray parts = jsonArray.get(pos).getAsJsonArray();
-                handleEntry(bitfinexApiBroker, configuration, parts);
-            }
+            handleSnapshot(bitfinexApiBroker, configuration, jsonArray);
         } else {
             handleEntry(bitfinexApiBroker, configuration, jsonArray);
         }
@@ -52,14 +50,27 @@ public class OrderbookHandler implements ChannelCallbackHandler {
     private void handleEntry(final BitfinexApiBroker bitfinexApiBroker,
                              final OrderbookConfiguration configuration,
                              final JsonArray jsonArray) {
+        bitfinexApiBroker.getOrderbookManager().handleNewOrderbookEntry(configuration, parseOrderBookEntry(jsonArray));
+    }
 
-        final BigDecimal price = jsonArray.get(0).getAsBigDecimal();
-        final BigDecimal count = jsonArray.get(1).getAsBigDecimal();
-        final BigDecimal amount = jsonArray.get(2).getAsBigDecimal();
+    private void handleSnapshot(final BitfinexApiBroker bitfinexApiBroker,
+                                final OrderbookConfiguration configuration,
+                                final JsonArray jsonArray) {
 
-        final OrderbookEntry orderbookEntry = new OrderbookEntry(price, count, amount);
+        List<OrderbookEntry> entries = new ArrayList<>();
+        for (int pos = 0; pos < jsonArray.size(); pos++) {
+            JsonArray entry = jsonArray.get(pos).getAsJsonArray();
+            entries.add(parseOrderBookEntry(entry));
+        }
 
-        bitfinexApiBroker.getOrderbookManager().handleNewOrderbookEntry(configuration, orderbookEntry);
+        bitfinexApiBroker.getOrderbookManager().handleOrderbookSnapshot(configuration, entries);
+    }
+
+    private OrderbookEntry parseOrderBookEntry(JsonArray jsonArray) {
+        BigDecimal price = jsonArray.get(0).getAsBigDecimal();
+        BigDecimal count = jsonArray.get(1).getAsBigDecimal();
+        BigDecimal amount = jsonArray.get(2).getAsBigDecimal();
+        return new OrderbookEntry(price, count, amount);
     }
 
 }

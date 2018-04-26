@@ -27,14 +27,14 @@ public class MBORealTimeProvider extends ExternalLiveBaseProvider {
     private static final OrderBookPrecision DEFAULT_RAW_ORDER_BOOK_PRICE_PRECISION = OrderBookPrecision.P1;
 
     private static final HashSet<BitfinexCurrencyPair> supportedPairs = new HashSet<>();
-    private static final HashMap<BitfinexCurrencyPair, Integer> amountMultiPliers = new HashMap<>();
+    private static final HashMap<BitfinexCurrencyPair, Integer> amountMultipliers = new HashMap<>();
 
     static {
         supportedPairs.add(BitfinexCurrencyPair.BTC_USD);
         supportedPairs.add(BitfinexCurrencyPair.IOT_USD);
 
-        amountMultiPliers.put(BitfinexCurrencyPair.BTC_USD, (int) 1e4);
-        amountMultiPliers.put(BitfinexCurrencyPair.IOT_USD, (int) 1e1);
+        amountMultipliers.put(BitfinexCurrencyPair.BTC_USD, (int) 1e4);
+        amountMultipliers.put(BitfinexCurrencyPair.IOT_USD, (int) 1e1);
     }
 
     @Override
@@ -89,7 +89,7 @@ public class MBORealTimeProvider extends ExternalLiveBaseProvider {
 
         double pips = PriceConverter.getPriceStep(orderbookConfiguration.getCurrencyPair(), DEFAULT_RAW_ORDER_BOOK_PRICE_PRECISION);
 
-        int amountMultiplier = amountMultiPliers.get(orderbookConfiguration.getCurrencyPair());
+        int amountMultiplier = amountMultipliers.get(orderbookConfiguration.getCurrencyPair());
         InstrumentInfoCrypto instrumentInfoCrypto = new InstrumentInfoCrypto(symbol, exchange, type, pips, 1, "", amountMultiplier);
         instrumentListeners.forEach(i -> i.onInstrumentAdded(alias, instrumentInfoCrypto));
 
@@ -244,7 +244,7 @@ public class MBORealTimeProvider extends ExternalLiveBaseProvider {
     private int getAmount(BitfinexCurrencyPair pair, BigDecimal amount) {
         return amount
                 .abs()
-                .multiply(BigDecimal.valueOf(amountMultiPliers.get(pair)))
+                .multiply(BigDecimal.valueOf(amountMultipliers.get(pair)))
                 .toBigInteger()
                 .intValue();
     }

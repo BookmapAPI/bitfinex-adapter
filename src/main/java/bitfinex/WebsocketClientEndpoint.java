@@ -57,6 +57,7 @@ public class WebsocketClientEndpoint implements Closeable {
 
     @OnMessage(maxMessageSize = 1048576)
     public void onMessage(final String message) {
+        //Log.info("message: " + message);
         callbackConsumer.forEach((c) -> c.accept(message));
     }
 

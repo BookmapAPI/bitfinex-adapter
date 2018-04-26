@@ -18,23 +18,25 @@ public class PriceConverter {
     }
 
     // onDepth accepts integer prices
-    public static int convertToInteger(OrderbookConfiguration orderbookConfiguration, double price) {
+    public static int convertToInteger(OrderbookConfiguration orderbookConfiguration, BigDecimal price) {
         return convertToInteger(orderbookConfiguration.getCurrencyPair(), orderbookConfiguration.getOrderBookPrecision(), price);
     }
 
-    public static int convertToInteger(BitfinexCurrencyPair currencyPair, OrderBookPrecision precision, double price) {
+    public static int convertToInteger(BitfinexCurrencyPair currencyPair, OrderBookPrecision precision, BigDecimal price) {
         double step = getPriceStep(currencyPair, precision);
-        return (int) (price / step);
+        int figuresAfterComa = (int) Math.round(1.0 / step);
+        return price.multiply(BigDecimal.valueOf(figuresAfterComa)).intValue();
     }
 
     // onTrade accepts double prices
-    public static double convertToDouble(OrderbookConfiguration orderbookConfiguration, double price) {
+    public static double convertToDouble(OrderbookConfiguration orderbookConfiguration, BigDecimal price) {
         return convertToDouble(orderbookConfiguration.getCurrencyPair(), orderbookConfiguration.getOrderBookPrecision(), price);
     }
 
-    public static double convertToDouble(BitfinexCurrencyPair currencyPair, OrderBookPrecision precision, double price) {
+    public static double convertToDouble(BitfinexCurrencyPair currencyPair, OrderBookPrecision precision, BigDecimal price) {
         double step = getPriceStep(currencyPair, precision);
-        return price / step;
+        int figuresAfterComa = (int) Math.round(1.0 / step);
+        return price.multiply(BigDecimal.valueOf(figuresAfterComa)).doubleValue();
     }
 
     public static double getPriceStep(OrderbookConfiguration orderbookConfiguration) {
@@ -49,7 +51,7 @@ public class PriceConverter {
     public static int roundToInteger(BitfinexCurrencyPair currencyPair, OrderBookPrecision precision, BigDecimal price, boolean isBid) {
         double step = getPriceStep(currencyPair, precision);
         int figuresAfterComa = 0;
-        int order = (int) (1 / step);
+        int order = (int) Math.round(1.0 / step);
         while (order >= 10) {
             figuresAfterComa++;
             order /= 10;
@@ -66,6 +68,6 @@ public class PriceConverter {
             roundingMode = RoundingMode.CEILING;
         }
         price = price.abs().setScale(figuresAfterComa, roundingMode);
-        return convertToInteger(currencyPair, precision, price.doubleValue());
+        return convertToInteger(currencyPair, precision, price);
     }
 }

@@ -187,7 +187,7 @@ public class MBORealTimeProvider extends ExternalLiveBaseProvider {
         ExecutedTradesManager executedTradesManager = bitfinexApiBroker.getExecutedTradesManager();
 
         BiConsumer<BitfinexExecutedTradeSymbol, ExecutedTrade> tradeCallback = (symb, trade) -> {
-            double price = PriceConverter.convertToDouble(symb.getBitfinexCurrencyPair(), DEFAULT_RAW_ORDER_BOOK_PRICE_PRECISION, trade.getPrice().doubleValue());
+            double price = PriceConverter.convertToDouble(symb.getBitfinexCurrencyPair(), DEFAULT_RAW_ORDER_BOOK_PRICE_PRECISION, trade.getPrice());
             boolean isOtc = false;
             boolean isBidAgressor = trade.getAmount().signum() > 0;
             int amount = getAmount(symb.getBitfinexCurrencyPair(), trade.getAmount());

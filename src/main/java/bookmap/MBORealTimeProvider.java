@@ -112,7 +112,7 @@ public class MBORealTimeProvider extends ExternalLiveBaseProvider {
 
     private void registerOrderBookSnapshotCallback(String alias, RawOrderbookConfiguration orderbookConfiguration, OrderByOrderBook orderBook) {
         BiConsumer<RawOrderbookConfiguration, List<RawOrderbookEntry>> orderBookSnapshopCallback = (orderbookConfig, entries) -> {
-            clearLevels(alias, orderBook);
+            clearLevels(alias, orderBook, entries, orderbookConfig);
 
             for (RawOrderbookEntry entry : entries) {
                 notifyOrderBookUpdate(alias, orderbookConfig, entry, orderBook);
@@ -142,22 +142,40 @@ public class MBORealTimeProvider extends ExternalLiveBaseProvider {
         }
     }
 
-    private void clearLevels(String alias, OrderByOrderBook orderByOrderBook) {
+    private void clearLevels(String alias, OrderByOrderBook orderByOrderBook, List<RawOrderbookEntry> entries, RawOrderbookConfiguration orderbookConfig) {
         OrderBook orderBook = orderByOrderBook.getOrderBook();
 
-        Integer[] bidLevels = orderBook.levels(true);
-        Integer[] askLevels = orderBook.levels(false);
-        Arrays.sort(bidLevels);
-        Arrays.sort(askLevels, Comparator.reverseOrder());
+        Integer[] oldBidLevels = orderBook.levels(true);
+        Integer[] oldAskLevels = orderBook.levels(false);
 
-        for (int i = 0; i < bidLevels.length; i++) {
-            int idx = i;
-            dataListeners.forEach(l -> l.onDepth(alias, true, bidLevels[idx], 0));
+        Arrays.sort(oldBidLevels);
+        Arrays.sort(oldAskLevels, Comparator.reverseOrder());
+
+        HashSet<Integer> newBidLevels = new HashSet<>();
+        HashSet<Integer> newAskLevels = new HashSet<>();
+
+        for (RawOrderbookEntry entry : entries) {
+            boolean isBid = entry.getAmount().signum() > 0;
+            int price = PriceConverter.roundToInteger(orderbookConfig.getCurrencyPair(), DEFAULT_RAW_ORDER_BOOK_PRICE_PRECISION, entry.getPrice(), isBid);
+            if (price != 0) {
+                if (isBid) newBidLevels.add(price);
+                else newAskLevels.add(price);
+            }
         }
 
-        for (int i = 0; i < askLevels.length; i++) {
-            int idx = i;
-            dataListeners.forEach(l -> l.onDepth(alias, false, askLevels[idx], 0));
+
+        for (int i = 0; i < oldBidLevels.length; i++) {
+            if (!newBidLevels.contains(oldBidLevels[i])) {
+                int idx = i;
+                dataListeners.forEach(l -> l.onDepth(alias, true, oldBidLevels[idx], 0));
+            }
+        }
+
+        for (int i = 0; i < oldAskLevels.length; i++) {
+            if (!newAskLevels.contains(oldAskLevels[i])) {
+                int idx = i;
+                dataListeners.forEach(l -> l.onDepth(alias, false, oldAskLevels[idx], 0));
+            }
         }
 
         orderByOrderBook.getAllIds().forEach(orderByOrderBook::removeOrder);

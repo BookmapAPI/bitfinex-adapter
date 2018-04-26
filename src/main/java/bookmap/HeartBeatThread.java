@@ -25,8 +25,8 @@ public class HeartBeatThread extends Thread {
 
     @Override
     public void run() {
-        try {
-            while (!stopped && !Thread.interrupted()) {
+        while (!stopped && !Thread.interrupted()) {
+            try {
                 Thread.sleep(TimeUnit.SECONDS.toMillis(20));
                 WebsocketClientEndpoint websocketEndpoint = bitfinexApiBroker.getWebsocketEndpoint();
 
@@ -49,12 +49,9 @@ public class HeartBeatThread extends Thread {
                     executeReconnect();
                     continue;
                 }
+            } catch (Exception e) {
+                Log.error("heartbeat thread exception", e);
             }
-
-        } catch (Exception e) {
-            logger.debug("heartbeat thread exception", e);
-            Thread.currentThread().interrupt();
-            return;
         }
     }
 

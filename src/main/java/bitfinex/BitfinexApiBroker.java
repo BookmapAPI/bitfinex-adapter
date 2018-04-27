@@ -37,7 +37,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import velox.api.layer1.common.Log;
 
+import javax.websocket.DeploymentException;
 import java.io.Closeable;
+import java.io.IOException;
 import java.net.URI;
 import java.util.HashMap;
 import java.util.Map;
@@ -247,7 +249,7 @@ public class BitfinexApiBroker implements Closeable {
             return channelIdSymbolMap.entrySet()
                     .stream()
                     .filter((v) -> v.getValue().equals(symbol))
-                    .map((v) -> v.getKey())
+                    .map(Map.Entry::getKey)
                     .findAny().orElse(-1);
         }
     }
@@ -292,19 +294,18 @@ public class BitfinexApiBroker implements Closeable {
             updateLastMessageTime();
 
             return true;
-        } catch (Exception e) {
-            Log.error("Got exception while reconnect", e);
-            logger.error("Got exception while reconnect", e);
+        } catch (DeploymentException | IOException e) {
+            Log.error("Websocket connection failed", e);
             websocketEndpoint.close();
             return false;
         }
     }
 
-    private void resubscribeChannels() throws InterruptedException, APIException {
-        final Map<Integer, BitfinexStreamSymbol> oldChannelIdSymbolMap = new HashMap<>();
+    private void resubscribeChannels() {
+        final Map<Integer, BitfinexStreamSymbol> oldChannelIdSymbolMap;
 
         synchronized (channelIdSymbolMap) {
-            oldChannelIdSymbolMap.putAll(channelIdSymbolMap);
+            oldChannelIdSymbolMap = new HashMap<>(channelIdSymbolMap);
             channelIdSymbolMap.clear();
             channelIdSymbolMap.notifyAll();
         }

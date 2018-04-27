@@ -33,9 +33,8 @@ public class WebsocketClientEndpoint implements Closeable {
      *
      * @throws DeploymentException
      * @throws IOException
-     * @throws InterruptedException
      */
-    public void connect() throws DeploymentException, IOException, InterruptedException {
+    public void connect() throws DeploymentException, IOException {
         final WebSocketContainer container = ContainerProvider.getWebSocketContainer();
         this.userSession = container.connectToServer(this, endpointURI);
     }

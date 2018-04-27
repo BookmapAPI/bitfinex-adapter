@@ -47,10 +47,9 @@ public class HeartBeatThread extends Thread {
                 if (reconnectNeeded) {
                     logger.error("Connection heartbeat time out, reconnecting");
                     executeReconnect();
-                    continue;
                 }
-            } catch (Exception e) {
-                Log.error("heartbeat thread exception", e);
+            } catch (InterruptedException e) {
+                Log.error("heartbeat thread interrupted", e);
             }
         }
     }
@@ -62,12 +61,7 @@ public class HeartBeatThread extends Thread {
 
     private boolean checkConnectionTimeout() {
         long heartbeatTimeout = bitfinexApiBroker.getLastMessageTime().get() + CONNECTION_TIMEOUT;
-
-        if (heartbeatTimeout < System.currentTimeMillis()) {
-            return true;
-        }
-
-        return false;
+        return heartbeatTimeout < System.currentTimeMillis();
     }
 
     private void ping() {

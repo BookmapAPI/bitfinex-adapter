@@ -3,15 +3,14 @@ package bookmap;
 import bitfinex.BitfinexApiBroker;
 import bitfinex.WebsocketClientEndpoint;
 import bitfinex.commands.PingCommand;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import velox.api.layer1.common.Log;
 
 import java.util.concurrent.TimeUnit;
 
+/**
+ * Thread that is responsible to keep connection opened. Sends ping commands and checks last response time. Preforms reconnects.
+ */
 public class HeartBeatThread extends Thread {
-
-    private static Logger logger = LoggerFactory.getLogger(HeartBeatThread.class);
 
     private BitfinexApiBroker bitfinexApiBroker;
 
@@ -35,7 +34,7 @@ public class HeartBeatThread extends Thread {
                 }
 
                 if (!websocketEndpoint.isConnected()) {
-                    logger.error("We are not connected, reconnecting");
+                    Log.debug("We are not connected, reconnecting");
                     executeReconnect();
                     continue;
                 }
@@ -45,7 +44,7 @@ public class HeartBeatThread extends Thread {
                 boolean reconnectNeeded = checkConnectionTimeout();
 
                 if (reconnectNeeded) {
-                    logger.error("Connection heartbeat time out, reconnecting");
+                    Log.debug("Connection heartbeat time out, reconnecting");
                     executeReconnect();
                 }
             } catch (InterruptedException e) {
@@ -65,7 +64,7 @@ public class HeartBeatThread extends Thread {
     }
 
     private void ping() {
-        logger.debug("HeartBeat thread. Sending ping command.");
+        Log.debug("HeartBeat thread. Sending ping command.");
         bitfinexApiBroker.sendCommand(new PingCommand());
     }
 

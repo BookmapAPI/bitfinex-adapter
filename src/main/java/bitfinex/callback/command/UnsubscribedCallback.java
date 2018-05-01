@@ -21,12 +21,9 @@ import bitfinex.BitfinexApiBroker;
 import bitfinex.entity.APIException;
 import bitfinex.entity.BitfinexStreamSymbol;
 import com.google.gson.JsonObject;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import velox.api.layer1.common.Log;
 
 public class UnsubscribedCallback implements CommandCallbackHandler {
-
-    final static Logger logger = LoggerFactory.getLogger(UnsubscribedCallback.class);
 
     @Override
     public void handleChannelData(final BitfinexApiBroker bitfinexApiBroker, final JsonObject jsonObject)
@@ -34,7 +31,7 @@ public class UnsubscribedCallback implements CommandCallbackHandler {
 
         final int channelId = jsonObject.get("chanId").getAsInt();
         final BitfinexStreamSymbol symbol = bitfinexApiBroker.getFromChannelSymbolMap(channelId);
-        logger.info("Channel {} ({}) is unsubscribed", channelId, symbol);
+        Log.info("Channel " + channelId + " (" + symbol + ") is unsubscribed");
 
         bitfinexApiBroker.removeChannel(channelId);
     }

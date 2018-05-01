@@ -13,6 +13,9 @@ import java.math.BigDecimal;
 import java.util.*;
 import java.util.function.BiConsumer;
 
+/**
+ * Provider accepts the data from bitfinex and pass it into bookmap using dataListeners.
+ */
 public class MBORealTimeProvider extends ExternalLiveBaseProvider {
 
     private BitfinexApiBroker bitfinexApiBroker = new BitfinexApiBroker();
@@ -64,6 +67,12 @@ public class MBORealTimeProvider extends ExternalLiveBaseProvider {
         return formatPriceDefault(priceStep, price);
     }
 
+    /**
+     * Subscribe method is called when new instrument is added.
+     * @param symbol
+     * @param exchange
+     * @param type
+     */
     @Override
     public void subscribe(String symbol, String exchange, String type) {
         if (!BitfinexCurrencyPair.contains(symbol) || !supportedPairs.contains(BitfinexCurrencyPair.valueOf(symbol))) {
@@ -109,7 +118,12 @@ public class MBORealTimeProvider extends ExternalLiveBaseProvider {
         bitfinexApiBroker.getRawOrderbookManager().registerOrderbookCallback(orderbookConfiguration, orderBookCallback);
     }
 
-
+    /**
+     * We handle snapshot separately to remove levels that are not present in snapshot after reconnect.
+     * @param alias
+     * @param orderbookConfiguration
+     * @param orderBook
+     */
     private void registerOrderBookSnapshotCallback(String alias, RawOrderbookConfiguration orderbookConfiguration, OrderByOrderBook orderBook) {
         BiConsumer<RawOrderbookConfiguration, List<RawOrderbookEntry>> orderBookSnapshopCallback = (orderbookConfig, entries) -> {
             clearLevels(alias, orderBook, entries, orderbookConfig);
@@ -142,6 +156,13 @@ public class MBORealTimeProvider extends ExternalLiveBaseProvider {
         }
     }
 
+    /**
+     * Removes levels that are not present in snapshot from current bookmap state. Needed to support reconnect.
+     * @param alias
+     * @param orderByOrderBook
+     * @param entries
+     * @param orderbookConfig
+     */
     private void clearLevels(String alias, OrderByOrderBook orderByOrderBook, List<RawOrderbookEntry> entries, RawOrderbookConfiguration orderbookConfig) {
         OrderBook orderBook = orderByOrderBook.getOrderBook();
 

@@ -33,8 +33,6 @@ import bitfinex.manager.RawOrderbookManager;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import velox.api.layer1.common.Log;
 
 import javax.websocket.DeploymentException;
@@ -65,8 +63,6 @@ public class BitfinexApiBroker implements Closeable {
     private Map<String, CommandCallbackHandler> commandCallbacks;
 
     private AtomicLong lastMessageTime = new AtomicLong();
-
-    private final static Logger logger = LoggerFactory.getLogger(BitfinexApiBroker.class);
 
     public BitfinexApiBroker() {
         this.channelIdSymbolMap = new HashMap<>();
@@ -107,10 +103,10 @@ public class BitfinexApiBroker implements Closeable {
     public void sendCommand(final AbstractAPICommand apiCommand) {
         try {
             final String command = apiCommand.getCommand(this);
-            logger.debug("Sending to server: {}", command);
+            Log.debug("Sending to server: " + command);
             websocketEndpoint.sendMessage(command);
         } catch (CommandException e) {
-            logger.error("Got Exception while sending command", e);
+            Log.error("Got Exception while sending command", e);
         }
     }
 
@@ -119,14 +115,14 @@ public class BitfinexApiBroker implements Closeable {
     }
 
     private void websocketCallback(final String message) {
-        logger.debug("Got message: {}", message);
+        Log.debug("Got message: " + message);
         updateLastMessageTime();
         if (message.startsWith("{")) {
             handleCommandCallback(message);
         } else if (message.startsWith("[")) {
             handleChannelCallback(message);
         } else {
-            logger.error("Got unknown callback: {}", message);
+            Log.error("Got unknown callback: " + message);
         }
     }
 
@@ -135,22 +131,17 @@ public class BitfinexApiBroker implements Closeable {
     }
 
     private void handleCommandCallback(final String message) {
-
-        logger.debug("Got {}", message);
-
         // JSON callback
         final JsonObject jsonObject = new JsonParser().parse(message).getAsJsonObject();
 
         final String eventType = jsonObject.get("event").getAsString();
 
-        if (!commandCallbacks.containsKey(eventType)) {
-            logger.error("Unknown event: {}", message);
-        } else {
+        if (commandCallbacks.containsKey(eventType)) {
             try {
                 final CommandCallbackHandler callback = commandCallbacks.get(eventType);
                 callback.handleChannelData(this, jsonObject);
             } catch (APIException e) {
-                logger.error("Got an exception while handling callback");
+                Log.error("Got an exception while handling callback", e);
             }
         }
     }
@@ -171,7 +162,7 @@ public class BitfinexApiBroker implements Closeable {
 
     protected void handleChannelCallback(final String message) {
         // Channel callback
-        logger.debug("Channel callback");
+        Log.debug("Channel callback");
 
         // JSON callback
         final JsonArray jsonArray = new JsonParser().parse(message).getAsJsonArray();
@@ -179,7 +170,7 @@ public class BitfinexApiBroker implements Closeable {
         final int channel = jsonArray.get(0).getAsInt();
 
         if (channel == 0) {
-            logger.info("signal message: {}", message);
+            Log.debug("signal message: " + message);
         } else {
             handleChannelData(jsonArray);
         }
@@ -190,8 +181,8 @@ public class BitfinexApiBroker implements Closeable {
         final BitfinexStreamSymbol channelSymbol = getFromChannelSymbolMap(channel);
 
         if (channelSymbol == null) {
-            logger.error("Unable to determine symbol for channel {}", channel);
-            logger.error("Data is {}", jsonArray);
+            Log.error("Unable to determine symbol for channel " + channel);
+            Log.error("Data is " + jsonArray);
             return;
         }
 
@@ -202,7 +193,7 @@ public class BitfinexApiBroker implements Closeable {
                 handleChannelDataString(jsonArray, channelSymbol);
             }
         } catch (APIException e) {
-            logger.error("Got exception while handling callback", e);
+            Log.error("Got exception while handling callback", e);
         }
     }
 
@@ -216,7 +207,7 @@ public class BitfinexApiBroker implements Closeable {
             final ChannelCallbackHandler handler = new ExecutedTradeHandler();
             handler.handleChannelData(this, channelSymbol, subarray);
         } else {
-            logger.error("skipping: {}", jsonArray);
+            Log.error("skipping: " + jsonArray);
         }
     }
 
@@ -234,7 +225,7 @@ public class BitfinexApiBroker implements Closeable {
             final ChannelCallbackHandler handler = new ExecutedTradeHandler();
             handler.handleChannelData(this, channelSymbol, subarray);
         } else {
-            logger.error("Unknown stream type: {}", channelSymbol);
+            Log.error("Unknown stream type: " + channelSymbol);
         }
     }
 
@@ -286,7 +277,6 @@ public class BitfinexApiBroker implements Closeable {
 
     public synchronized boolean reconnect() {
         try {
-            logger.info("Performing reconnect");
             websocketEndpoint.close();
             websocketEndpoint.connect();
 
@@ -319,7 +309,7 @@ public class BitfinexApiBroker implements Closeable {
             } else if (symbol instanceof RawOrderbookConfiguration) {
                 sendCommand(new SubscribeRawOrderbookCommand((RawOrderbookConfiguration) symbol));
             } else {
-                logger.error("Unknown stream symbol: {}", symbol);
+                Log.error("Unknown stream symbol: " + symbol);
             }
         }
     }

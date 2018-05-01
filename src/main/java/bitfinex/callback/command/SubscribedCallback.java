@@ -23,12 +23,9 @@ import bitfinex.entity.BitfinexExecutedTradeSymbol;
 import bitfinex.entity.OrderbookConfiguration;
 import bitfinex.entity.RawOrderbookConfiguration;
 import com.google.gson.JsonObject;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import velox.api.layer1.common.Log;
 
 public class SubscribedCallback implements CommandCallbackHandler {
-
-    final static Logger logger = LoggerFactory.getLogger(SubscribedCallback.class);
 
     @Override
     public void handleChannelData(final BitfinexApiBroker bitfinexApiBroker,
@@ -45,7 +42,7 @@ public class SubscribedCallback implements CommandCallbackHandler {
                 handleBookCallback(bitfinexApiBroker, jsonObject, channelId);
                 break;
             default:
-                logger.error("Unknown subscribed callback {}", jsonObject.toString());
+                Log.error("Unknown subscribed callback " + jsonObject.toString());
         }
     }
 
@@ -55,12 +52,12 @@ public class SubscribedCallback implements CommandCallbackHandler {
         if ("R0".equals(jsonObject.get("prec").getAsString())) {
             final RawOrderbookConfiguration configuration
                     = RawOrderbookConfiguration.fromJSON(jsonObject);
-            logger.info("Registering raw book {} on channel {}", jsonObject, channelId);
+            Log.info("Registering raw book " + jsonObject + " on channel " + channelId);
             bitfinexApiBroker.addToChannelSymbolMap(channelId, configuration);
         } else {
             final OrderbookConfiguration configuration
                     = OrderbookConfiguration.fromJSON(jsonObject);
-            logger.info("Registering book {} on channel {}", jsonObject, channelId);
+            Log.info("Registering book " + jsonObject + " on channel " + channelId);
             bitfinexApiBroker.addToChannelSymbolMap(channelId, configuration);
         }
     }
@@ -70,7 +67,7 @@ public class SubscribedCallback implements CommandCallbackHandler {
 
         final String symbol2 = jsonObject.get("symbol").getAsString();
         final BitfinexExecutedTradeSymbol currencyPair = BitfinexExecutedTradeSymbol.fromBitfinexString(symbol2);
-        logger.info("Registering symbol {} on channel {}", currencyPair, channelId);
+        Log.info("Registering symbol " + currencyPair + " on channel " + channelId);
         bitfinexApiBroker.addToChannelSymbolMap(channelId, currencyPair);
     }
 }

@@ -1,7 +1,5 @@
 package bitfinex;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import velox.api.layer1.common.Log;
 
 import javax.websocket.*;
@@ -21,8 +19,6 @@ public class WebsocketClientEndpoint implements Closeable {
     private final List<Consumer<String>> callbackConsumer = new CopyOnWriteArrayList<>();
 
     private final URI endpointURI;
-
-    private final static Logger logger = LoggerFactory.getLogger(WebsocketClientEndpoint.class);
 
     public WebsocketClientEndpoint(final URI endpointURI) {
         this.endpointURI = endpointURI;
@@ -46,12 +42,12 @@ public class WebsocketClientEndpoint implements Closeable {
 
     @OnOpen
     public void onOpen(final Session userSession) {
-        logger.info("Websocket is now open");
+        Log.info("Websocket is now open");
     }
 
     @OnClose
     public void onClose(final Session userSession, final CloseReason reason) {
-        logger.info("Closing websocket: {}", reason);
+        Log.info("Closing websocket: " + reason);
     }
 
     @OnMessage(maxMessageSize = 1048576)
@@ -68,12 +64,12 @@ public class WebsocketClientEndpoint implements Closeable {
     public void sendMessage(final String message) {
 
         if (userSession == null) {
-            logger.error("Unable to send message, user session is null");
+            Log.error("Unable to send message, user session is null");
             return;
         }
 
         if (userSession.getAsyncRemote() == null) {
-            logger.error("Unable to send message, async remote is null");
+            Log.error("Unable to send message, async remote is null");
             return;
         }
 
@@ -111,7 +107,7 @@ public class WebsocketClientEndpoint implements Closeable {
         try {
             userSession.close(new CloseReason(CloseCodes.NORMAL_CLOSURE, "Socket closed"));
         } catch (Throwable e) {
-            logger.error("Got exception while closing socket", e);
+            Log.error("Got exception while closing socket", e);
         }
     }
 

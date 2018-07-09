@@ -207,7 +207,7 @@ public class BitfinexApiBroker implements Closeable {
             final ChannelCallbackHandler handler = new ExecutedTradeHandler();
             handler.handleChannelData(this, channelSymbol, subarray);
         } else {
-            Log.error("skipping: " + jsonArray);
+            Log.debug("skipping: " + jsonArray);
         }
     }
 

@@ -14,7 +14,7 @@ public class HeartBeatThread extends Thread {
 
     private BitfinexApiBroker bitfinexApiBroker;
 
-    private static final long CONNECTION_TIMEOUT = TimeUnit.SECONDS.toMillis(60);
+    private static final long CONNECTION_TIMEOUT = TimeUnit.SECONDS.toMillis(35);
 
     private volatile boolean stopped = false;
 

@@ -181,8 +181,8 @@ public class BitfinexApiBroker implements Closeable {
         final BitfinexStreamSymbol channelSymbol = getFromChannelSymbolMap(channel);
 
         if (channelSymbol == null) {
-            Log.error("Unable to determine symbol for channel " + channel);
-            Log.error("Data is " + jsonArray);
+            Log.debug("Unable to determine symbol for channel " + channel);
+            Log.debug("Data is " + jsonArray);
             return;
         }
 

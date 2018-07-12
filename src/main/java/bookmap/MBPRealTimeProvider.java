@@ -14,6 +14,7 @@ import velox.api.layer1.layers.utils.OrderBook;
 import java.math.BigDecimal;
 import java.util.*;
 import java.util.function.BiConsumer;
+import java.util.stream.Collectors;
 
 /**
  * Provider accepts the data from bitfinex and pass it into bookmap using dataListeners.
@@ -234,6 +235,21 @@ public class MBPRealTimeProvider extends ExternalLiveBaseProvider {
     @Override
     public String getSource() {
         return "bitfinex";
+    }
+    
+    @Override
+    public Layer1ApiProviderSupportedFeatures getSupportedFeatures() {
+        return super.getSupportedFeatures().toBuilder()
+            .setKnownInstruments(
+                    supportedPairs.stream()
+                    .map(p -> new SubscribeInfo(p.name(), null, null))
+                    .collect(Collectors.toList())
+            )
+            .setExchangeUsedForSubscription(false)
+            .setTypeUsedForSubscription(false)
+            .setHistoricalDataInfo(new BmSimpleHistoricalDataInfo(
+                    "http://bitfinex.historicaldata.bookmap.com:28080/historical-data-server-1.0/"))
+            .build();
     }
 
     @Override

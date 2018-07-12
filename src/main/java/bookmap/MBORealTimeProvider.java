@@ -68,15 +68,16 @@ public class MBORealTimeProvider extends ExternalLiveBaseProvider {
         double priceStep = PriceConverter.getPriceStep(orderbookConfiguration.getCurrencyPair(), DEFAULT_RAW_ORDER_BOOK_PRICE_PRECISION);
         return formatPriceDefault(priceStep, price);
     }
-
+    
     /**
      * Subscribe method is called when new instrument is added.
-     * @param symbol
-     * @param exchange
-     * @param type
      */
     @Override
-    public void subscribe(String symbol, String exchange, String type) {
+    public void subscribe(SubscribeInfo subscribeInfo) {
+        final String symbol = subscribeInfo.symbol;
+        final String exchange = subscribeInfo.exchange;
+        final String type = subscribeInfo.type;
+
         if (!BitfinexCurrencyPair.contains(symbol) || !supportedPairs.contains(BitfinexCurrencyPair.valueOf(symbol))) {
             instrumentListeners.forEach(i -> i.onInstrumentNotFound(symbol, exchange, type));
             return;

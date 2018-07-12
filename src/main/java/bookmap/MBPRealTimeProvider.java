@@ -68,14 +68,13 @@ public class MBPRealTimeProvider extends ExternalLiveBaseProvider {
     }
 
     /**
-     * Subscribe method is called when new instrument is added in bookmap.
-     *
-     * @param symbol
-     * @param exchange
-     * @param type
+     * Subscribe method is called when new instrument is added.
      */
     @Override
-    public void subscribe(String symbol, String exchange, String type) {
+    public void subscribe(SubscribeInfo subscribeInfo) {
+        final String symbol = subscribeInfo.symbol;
+        final String exchange = subscribeInfo.exchange;
+        final String type = subscribeInfo.type;
         if (!BitfinexCurrencyPair.contains(symbol) || !supportedPairs.contains(BitfinexCurrencyPair.valueOf(symbol))) {
             instrumentListeners.forEach(i -> i.onInstrumentNotFound(symbol, exchange, type));
             return;

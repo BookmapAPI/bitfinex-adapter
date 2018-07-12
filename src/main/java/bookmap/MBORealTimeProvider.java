@@ -6,6 +6,8 @@ import bitfinex.manager.ExecutedTradesManager;
 import velox.api.layer0.annotations.Layer0LiveModule;
 import velox.api.layer0.live.ExternalLiveBaseProvider;
 import velox.api.layer1.Layer1ApiAdminListener;
+import velox.api.layer1.annotations.Layer1ApiVersion;
+import velox.api.layer1.annotations.Layer1ApiVersionValue;
 import velox.api.layer1.data.*;
 import velox.api.layer1.layers.utils.OrderBook;
 import velox.api.layer1.layers.utils.OrderByOrderBook;
@@ -17,7 +19,8 @@ import java.util.function.BiConsumer;
 /**
  * Provider accepts the data from bitfinex and pass it into bookmap using dataListeners.
  */
-@Layer0LiveModule
+@Layer1ApiVersion(Layer1ApiVersionValue.VERSION1)
+@Layer0LiveModule(fullName = "Bitfinex MBO", shortName = "BFo")
 public class MBORealTimeProvider extends ExternalLiveBaseProvider {
 
     private BitfinexApiBroker bitfinexApiBroker = new BitfinexApiBroker();

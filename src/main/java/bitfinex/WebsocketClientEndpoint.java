@@ -9,6 +9,8 @@ import java.io.IOException;
 import java.net.URI;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.function.Consumer;
 
 @ClientEndpoint
@@ -19,6 +21,13 @@ public class WebsocketClientEndpoint implements Closeable {
     private final List<Consumer<String>> callbackConsumer = new CopyOnWriteArrayList<>();
 
     private final URI endpointURI;
+    
+    /**
+     * Writes what was requested sequentially. Not needed with Jetty, but needed with Tomcat.
+     * Tomcat will throw an exception if new asynchronous write is started before previous one completes,
+     * so using asynchronous writes becomes problematic.
+     * */
+    private ExecutorService writeExecutorService = Executors.newSingleThreadExecutor();
 
     public WebsocketClientEndpoint(final URI endpointURI) {
         this.endpointURI = endpointURI;
@@ -73,7 +82,13 @@ public class WebsocketClientEndpoint implements Closeable {
             return;
         }
 
-        userSession.getAsyncRemote().sendText(message);
+        writeExecutorService.submit(() -> {
+            try {
+                userSession.getBasicRemote().sendText(message);
+            } catch (IOException e) {
+                Log.warn("Failed to send data", e);
+            }
+        });
     }
 
     /**

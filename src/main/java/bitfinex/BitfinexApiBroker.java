@@ -165,7 +165,7 @@ public class BitfinexApiBroker implements Closeable {
 
     protected void handleChannelCallback(final String message) {
         // Channel callback
-        Log.debug("Channel callback");
+        Log.trace("Channel callback");
 
         // JSON callback
         final JsonArray jsonArray = new JsonParser().parse(message).getAsJsonArray();
@@ -173,7 +173,7 @@ public class BitfinexApiBroker implements Closeable {
         final int channel = jsonArray.get(0).getAsInt();
 
         if (channel == 0) {
-            Log.debug("signal message: " + message);
+            Log.trace("signal message: " + message);
         } else {
             handleChannelData(jsonArray);
         }
@@ -210,7 +210,7 @@ public class BitfinexApiBroker implements Closeable {
             final ChannelCallbackHandler handler = new ExecutedTradeHandler();
             handler.handleChannelData(this, channelSymbol, subarray);
         } else {
-            Log.debug("skipping: " + jsonArray);
+            Log.trace("skipping: " + jsonArray);
         }
     }
 

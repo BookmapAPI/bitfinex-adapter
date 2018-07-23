@@ -259,7 +259,7 @@ public class MBPRealTimeProvider extends ExternalLiveBaseProvider {
     }
 
     private static String createAlias(String symbol, String exchange, String type) {
-        return "Bitfinex/" + symbol;
+        return symbol;
     }
 
     private int getAmount(BitfinexCurrencyPair pair, BigDecimal amount) {

@@ -49,6 +49,7 @@ public class BitfinexApiBroker implements Closeable {
     public final static String BITFINEX_URI = "wss://api.bitfinex.com/ws/2";
 
     private final Consumer<String> apiCallback = ((message) -> websocketCallback(message));
+    private final Consumer<String> rawDataCallback;
 
     private WebsocketClientEndpoint websocketEndpoint;
 
@@ -64,7 +65,9 @@ public class BitfinexApiBroker implements Closeable {
 
     private AtomicLong lastMessageTime = new AtomicLong();
 
-    public BitfinexApiBroker() {
+    public BitfinexApiBroker(Consumer<String> rawDataCallback) {
+        this.rawDataCallback = rawDataCallback;
+        
         this.channelIdSymbolMap = new HashMap<>();
         this.orderbookManager = new OrderbookManager(this);
         this.rawOrderbookManager = new RawOrderbookManager(this);
@@ -84,6 +87,7 @@ public class BitfinexApiBroker implements Closeable {
         try {
             final URI bitfinexURI = new URI(BITFINEX_URI);
             websocketEndpoint = new WebsocketClientEndpoint(bitfinexURI);
+            websocketEndpoint.addRawDataCallback(rawDataCallback);
             websocketEndpoint.addConsumer(apiCallback);
             websocketEndpoint.connect();
         } catch (Exception e) {
@@ -95,6 +99,7 @@ public class BitfinexApiBroker implements Closeable {
     public void close() {
         if (websocketEndpoint != null) {
             websocketEndpoint.removeConsumer(apiCallback);
+            websocketEndpoint.removeRawDataCallback(rawDataCallback);
             websocketEndpoint.close();
             websocketEndpoint = null;
         }
@@ -103,7 +108,6 @@ public class BitfinexApiBroker implements Closeable {
     public void sendCommand(final AbstractAPICommand apiCommand) {
         try {
             final String command = apiCommand.getCommand(this);
-            Log.debug("Sending to server: " + command);
             websocketEndpoint.sendMessage(command);
         } catch (CommandException e) {
             Log.error("Got Exception while sending command", e);
@@ -115,7 +119,6 @@ public class BitfinexApiBroker implements Closeable {
     }
 
     private void websocketCallback(final String message) {
-        Log.debug("Got message: " + message);
         updateLastMessageTime();
         if (message.startsWith("{")) {
             handleCommandCallback(message);

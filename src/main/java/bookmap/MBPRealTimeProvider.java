@@ -10,6 +10,7 @@ import velox.api.layer1.annotations.Layer1ApiVersion;
 import velox.api.layer1.annotations.Layer1ApiVersionValue;
 import velox.api.layer1.data.*;
 import velox.api.layer1.layers.utils.OrderBook;
+import velox.api.layer1.providers.helper.RawDataHelper;
 
 import java.math.BigDecimal;
 import java.util.*;
@@ -23,7 +24,8 @@ import java.util.stream.Collectors;
 @Layer0LiveModule(fullName = "Bitfinex MBP", shortName = "BFp")
 public class MBPRealTimeProvider extends ExternalLiveBaseProvider {
 
-    private BitfinexApiBroker bitfinexApiBroker = new BitfinexApiBroker();
+    private BitfinexApiBroker bitfinexApiBroker = new BitfinexApiBroker(
+            data -> RawDataHelper.sendRawData(data, adminListeners));
     private HeartBeatThread heartBeatThread = new HeartBeatThread(bitfinexApiBroker);
 
     private final HashSet<String> aliases = new HashSet<>();

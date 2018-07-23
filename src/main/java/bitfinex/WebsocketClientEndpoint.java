@@ -1,9 +1,13 @@
 package bitfinex;
 
 import velox.api.layer1.common.Log;
+import velox.api.layer1.providers.helper.RawDataHelper;
 
 import javax.websocket.*;
 import javax.websocket.CloseReason.CloseCodes;
+
+import org.apache.commons.lang3.exception.ExceptionUtils;
+
 import java.io.Closeable;
 import java.io.IOException;
 import java.net.URI;
@@ -18,7 +22,10 @@ public class WebsocketClientEndpoint implements Closeable {
 
     private Session userSession = null;
 
+    /** Called on incoming message */
     private final List<Consumer<String>> callbackConsumer = new CopyOnWriteArrayList<>();
+    /** Called on any interaction, regardless of direction. Useful for debug */
+    private final List<Consumer<String>> rawDataConsumer = new CopyOnWriteArrayList<>();
 
     private final URI endpointURI;
     
@@ -42,27 +49,44 @@ public class WebsocketClientEndpoint implements Closeable {
     public void connect() throws DeploymentException, IOException {
         final WebSocketContainer container = ContainerProvider.getWebSocketContainer();
         this.userSession = container.connectToServer(this, endpointURI);
+        
+        if (RawDataHelper.isRawDataRecordingEnabled()) {
+            rawDataConsumer.forEach(e -> e.accept("connect " + endpointURI));
+        }
     }
 
     @OnError
     public void onError(final Session userSession, Throwable throwable) {
         Log.error("Error occurred", throwable);
+        if (RawDataHelper.isRawDataRecordingEnabled()) {
+            String rawData = "onError " + ExceptionUtils.getStackTrace(throwable);
+            rawDataConsumer.forEach(e -> e.accept(rawData));
+        }
     }
 
     @OnOpen
     public void onOpen(final Session userSession) {
         Log.info("Websocket is now open");
+        if (RawDataHelper.isRawDataRecordingEnabled()) {
+            rawDataConsumer.forEach(e -> e.accept("onOpen"));
+        }
     }
 
     @OnClose
     public void onClose(final Session userSession, final CloseReason reason) {
         Log.info("Closing websocket: " + reason);
+        if (RawDataHelper.isRawDataRecordingEnabled()) {
+            rawDataConsumer.forEach(e -> e.accept("onClose " + reason));
+        }
     }
 
     @OnMessage(maxMessageSize = 1048576)
     public void onMessage(final String message) {
         //Log.info("message: " + message);
         callbackConsumer.forEach((c) -> c.accept(message));
+        if (RawDataHelper.isRawDataRecordingEnabled()) {
+            rawDataConsumer.forEach(e -> e.accept("<-" + message));
+        }
     }
 
     /**
@@ -72,6 +96,10 @@ public class WebsocketClientEndpoint implements Closeable {
      */
     public void sendMessage(final String message) {
 
+        if (RawDataHelper.isRawDataRecordingEnabled()) {
+            rawDataConsumer.forEach(e -> e.accept("->" + message));
+        }
+        
         if (userSession == null) {
             Log.error("Unable to send message, user session is null");
             return;
@@ -111,12 +139,37 @@ public class WebsocketClientEndpoint implements Closeable {
     }
 
     /**
+     * Add a raw data listener
+     *
+     * @see RawDataHelper
+     * @param listener
+     */
+    public void addRawDataCallback(final Consumer<String> listener) {
+        rawDataConsumer.add(listener);
+    }
+
+    /**
+     * Remove a raw data listener
+     *
+     * @see RawDataHelper
+     * @param listener
+     * @return
+     */
+    public boolean removeRawDataCallback(final Consumer<String> listener) {
+        return rawDataConsumer.remove(listener);
+    }
+    
+    /**
      * Close the connection
      */
     @Override
     public void close() {
         if (userSession == null) {
             return;
+        }
+        
+        if (RawDataHelper.isRawDataRecordingEnabled()) {
+            rawDataConsumer.forEach(e -> e.accept("close"));
         }
 
         try {

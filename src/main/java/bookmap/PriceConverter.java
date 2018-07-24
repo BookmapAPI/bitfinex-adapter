@@ -46,7 +46,7 @@ public class PriceConverter {
         priceStep.put(BitfinexCurrencyPair.BCH_USD, new double[]{0.01, 0.1, 1.0, 10.0});
         priceStep.put(BitfinexCurrencyPair.BCH_BTC, new double[]{1.0E-5, 1.0E-4, 1.0E-4, 0.001});
         priceStep.put(BitfinexCurrencyPair.BCH_ETH, new double[]{1.0E-4, 0.001, 0.01, 0.01});
-        priceStep.put(BitfinexCurrencyPair.NEO_USD, new double[]{0.001, 0.01, 0.1, 0.1});
+        priceStep.put(BitfinexCurrencyPair.NEO_USD, new double[]{0.001, 0.01, 0.1, 1.0});
         priceStep.put(BitfinexCurrencyPair.NEO_BTC, new double[]{1.0E-7, 1.0E-6, 1.0E-5, 1.0E-4});
         priceStep.put(BitfinexCurrencyPair.NEO_ETH, new double[]{1.0E-6, 1.0E-5, 1.0E-4, 0.001});
         priceStep.put(BitfinexCurrencyPair.ETP_USD, new double[]{1.0E-4, 0.001, 0.01, 0.01});
@@ -79,7 +79,7 @@ public class PriceConverter {
         priceStep.put(BitfinexCurrencyPair.SNT_BTC, new double[]{1.0E-8, 1.0E-8, 1.0E-8, 1.0E-7});
         priceStep.put(BitfinexCurrencyPair.SNT_ETH, new double[]{1.0E-8, 1.0E-7, 3.0E-8, 1.0E-8});
         priceStep.put(BitfinexCurrencyPair.IOT_EUR, new double[]{1.0E-5, 1.0E-4, 0.001, 0.01});
-        priceStep.put(BitfinexCurrencyPair.BAT_USD, new double[]{1.0E-5, 1.0E-4, 0.001, 0.002});
+        priceStep.put(BitfinexCurrencyPair.BAT_USD, new double[]{1.0E-5, 1.0E-4, 0.001, 0.01});
         priceStep.put(BitfinexCurrencyPair.BAT_BTC, new double[]{1.0E-8, 1.0E-8, 1.0E-7, 1.0E-6});
         priceStep.put(BitfinexCurrencyPair.BAT_ETH, new double[]{1.0E-8, 1.0E-7, 1.0E-6, 1.0E-5});
         priceStep.put(BitfinexCurrencyPair.MNA_USD, new double[]{1.0E-5, 1.0E-4, 1.0E-4, 0.001});

@@ -14,6 +14,7 @@ import velox.api.layer1.layers.utils.OrderByOrderBook;
 import velox.api.layer1.providers.helper.RawDataHelper;
 
 import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.util.*;
 import java.util.function.BiConsumer;
 
@@ -379,6 +380,7 @@ public class MBORealTimeProvider extends ExternalLiveBaseProvider {
                 .abs()
                 .multiply(BigDecimal.valueOf(amountMultipliers.get(pair)))
                 .toBigInteger()
+                .min(BigInteger.valueOf(1000_000_000)) // Workaround - values close to integer maximum might cause issues
                 .intValue();
     }
 

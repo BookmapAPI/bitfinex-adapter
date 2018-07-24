@@ -127,8 +127,7 @@ public class PriceConverter {
 
     public static int convertToInteger(BitfinexCurrencyPair currencyPair, OrderBookPrecision precision, BigDecimal price) {
         double step = getPriceStep(currencyPair, precision);
-        int figuresAfterComa = (int) Math.round(1.0 / step);
-        return price.multiply(BigDecimal.valueOf(figuresAfterComa)).intValue();
+        return price.divide(BigDecimal.valueOf(step), 0, BigDecimal.ROUND_HALF_UP).intValue();
     }
 
     // onTrade accepts double prices
@@ -138,8 +137,7 @@ public class PriceConverter {
 
     public static double convertToDouble(BitfinexCurrencyPair currencyPair, OrderBookPrecision precision, BigDecimal price) {
         double step = getPriceStep(currencyPair, precision);
-        int figuresAfterComa = (int) Math.round(1.0 / step);
-        return price.multiply(BigDecimal.valueOf(figuresAfterComa)).doubleValue();
+        return price.divide(BigDecimal.valueOf(step), BigDecimal.ROUND_HALF_UP).doubleValue();
     }
 
     public static double getPriceStep(OrderbookConfiguration orderbookConfiguration) {

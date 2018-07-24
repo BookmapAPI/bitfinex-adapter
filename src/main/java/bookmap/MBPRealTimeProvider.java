@@ -33,7 +33,7 @@ public class MBPRealTimeProvider extends ExternalLiveBaseProvider {
     private Map<String, OrderbookConfiguration> orderBookConfigByAlias = new HashMap<>();
     private Map<String, BitfinexExecutedTradeSymbol> tradeSymbolByAlias = new HashMap<>();
 
-    private static final HashMap<BitfinexCurrencyPair, Integer> amountMultiPliers = new HashMap<>();
+    private static final HashMap<BitfinexCurrencyPair, Integer> amountMultipliers = new HashMap<>();
 
     private static final HashSet<BitfinexCurrencyPair> supportedPairs = new HashSet<>();
 
@@ -42,8 +42,8 @@ public class MBPRealTimeProvider extends ExternalLiveBaseProvider {
         supportedPairs.add(BitfinexCurrencyPair.BTC_USD);
         supportedPairs.add(BitfinexCurrencyPair.IOT_USD);
 
-        amountMultiPliers.put(BitfinexCurrencyPair.BTC_USD, (int) 1e4);
-        amountMultiPliers.put(BitfinexCurrencyPair.IOT_USD, (int) 1e1);
+        amountMultipliers.put(BitfinexCurrencyPair.BTC_USD, (int) 1e4);
+        amountMultipliers.put(BitfinexCurrencyPair.IOT_USD, (int) 1e1);
     }
 
     @Override
@@ -106,7 +106,7 @@ public class MBPRealTimeProvider extends ExternalLiveBaseProvider {
 
         double pips = PriceConverter.getPriceStep(orderbookConfiguration);
 
-        int amountMultiplier = amountMultiPliers.get(orderbookConfiguration.getCurrencyPair());
+        int amountMultiplier = amountMultipliers.get(orderbookConfiguration.getCurrencyPair());
         InstrumentInfoCrypto instrumentInfoCrypto = new InstrumentInfoCrypto(symbol, exchange, type, pips, 1, "", amountMultiplier);
         instrumentListeners.forEach(i -> i.onInstrumentAdded(alias, instrumentInfoCrypto));
 
@@ -267,7 +267,7 @@ public class MBPRealTimeProvider extends ExternalLiveBaseProvider {
     private int getAmount(BitfinexCurrencyPair pair, BigDecimal amount) {
         return amount
                 .abs()
-                .multiply(BigDecimal.valueOf(amountMultiPliers.get(pair)))
+                .multiply(BigDecimal.valueOf(amountMultipliers.get(pair)))
                 .toBigInteger()
                 .intValue();
     }

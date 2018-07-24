@@ -150,6 +150,26 @@ public class PriceConverter {
         int index = Integer.valueOf(precision.toString().substring(1));
         return priceStep.get(currencyPair)[index];
     }
+    
+    public static OrderBookPrecision getClosestOrderBookPrecision(BitfinexCurrencyPair currencyPair, double priceStep) {
+        double minDistance = Double.POSITIVE_INFINITY;
+        OrderBookPrecision bestPrecision = null;
+
+        for (OrderBookPrecision precision : OrderBookPrecision.values()) {
+            double priceStepForPrecision = getPriceStep(currencyPair, precision);
+            
+            double currentDistance = Math.abs(priceStepForPrecision - priceStep);
+            if (currentDistance < minDistance) {
+                minDistance = currentDistance;
+                bestPrecision = precision;
+            }
+        }
+        return bestPrecision;
+    }
+    
+    public static double[] getPriceSteps(BitfinexCurrencyPair currencyPair) {
+        return priceStep.get(currencyPair);
+    }
 
     public static int roundToInteger(BitfinexCurrencyPair currencyPair, OrderBookPrecision precision, BigDecimal price, boolean isBid) {
         double step = getPriceStep(currencyPair, precision);

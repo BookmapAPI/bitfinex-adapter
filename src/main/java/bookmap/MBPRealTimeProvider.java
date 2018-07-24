@@ -186,6 +186,9 @@ public class MBPRealTimeProvider extends ExternalLiveBaseProvider {
         final String symbol = subscribeInfo.symbol;
         final String exchange = subscribeInfo.exchange;
         final String type = subscribeInfo.type;
+        // If Bookmap sent us preferred price step - used it. If not - use default one.
+        final Double priceStep = subscribeInfo instanceof SubscribeInfoCrypto 
+                ? ((SubscribeInfoCrypto)subscribeInfo).pips : null;
         if (!BitfinexCurrencyPair.contains(symbol) || !supportedPairs.contains(BitfinexCurrencyPair.valueOf(symbol))) {
             instrumentListeners.forEach(i -> i.onInstrumentNotFound(symbol, exchange, type));
             return;
@@ -197,17 +200,19 @@ public class MBPRealTimeProvider extends ExternalLiveBaseProvider {
             added = aliases.add(alias);
         }
         if (added) {
-            subscribeOrderBook(symbol, exchange, type, alias);
+            subscribeOrderBook(symbol, exchange, type, alias, priceStep);
             subscribeExecutedTrades(symbol, exchange, type, alias);
         } else {
             instrumentListeners.forEach(i -> i.onInstrumentAlreadySubscribed(symbol, exchange, type));
         }
     }
 
-    private void subscribeOrderBook(String symbol, String exchange, String type, String alias) {
-        // P1 precision is chosen because of optimal aggregation level by price. With P0 there are too many gaps on price axis.
+    private void subscribeOrderBook(String symbol, String exchange, String type, String alias, Double priceStep) {
+        BitfinexCurrencyPair currencyPair = BitfinexCurrencyPair.valueOf(symbol);
+        OrderBookPrecision precision = priceStep == null ? OrderBookPrecision.P1
+                : PriceConverter.getClosestOrderBookPrecision(currencyPair, priceStep);
         OrderbookConfiguration orderbookConfiguration =
-                new OrderbookConfiguration(BitfinexCurrencyPair.valueOf(symbol), OrderBookPrecision.P1, OrderBookFrequency.F0, 100);
+                new OrderbookConfiguration(currencyPair, precision, OrderBookFrequency.F0, 100);
 
         double pips = PriceConverter.getPriceStep(orderbookConfiguration);
 
@@ -352,6 +357,19 @@ public class MBPRealTimeProvider extends ExternalLiveBaseProvider {
                     .map(p -> new SubscribeInfo(p.name(), null, null))
                     .collect(Collectors.toList())
             )
+            .setPipsFunction(s -> {
+                try {
+                    BitfinexCurrencyPair bitfinexCurrencyPair = BitfinexCurrencyPair.valueOf(s.symbol);
+                    double[] priceStepPrimitives = PriceConverter.getPriceSteps(bitfinexCurrencyPair);
+                    Double[] priceSteps = ArrayUtils.toObject(priceStepPrimitives);
+                    // Selecting item in the middle or right before the middle as reasonable default
+                    Double defaultValue = priceSteps[(priceSteps.length - 1) / 2];
+                    return new DefaultAndList<Double>(
+                            defaultValue, Arrays.asList(priceSteps));
+                } catch (IllegalArgumentException | NullPointerException e) {
+                    return null;
+                }
+            })
             .setExchangeUsedForSubscription(false)
             .setTypeUsedForSubscription(false)
             .setHistoricalDataInfo(new BmSimpleHistoricalDataInfo(

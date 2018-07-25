@@ -218,7 +218,7 @@ public class MBPRealTimeProvider extends ExternalLiveBaseProvider {
         double pips = PriceConverter.getPriceStep(orderbookConfiguration);
 
         int amountMultiplier = amountMultipliers.get(orderbookConfiguration.getCurrencyPair());
-        InstrumentInfoCrypto instrumentInfoCrypto = new InstrumentInfoCrypto(symbol, exchange, type, pips, 1, "", amountMultiplier);
+        InstrumentInfoCrypto instrumentInfoCrypto = new InstrumentInfoCrypto(symbol, exchange, type, pips, 1, "", false, amountMultiplier);
         instrumentListeners.forEach(i -> i.onInstrumentAdded(alias, instrumentInfoCrypto));
 
         OrderBook orderBook = new OrderBook();

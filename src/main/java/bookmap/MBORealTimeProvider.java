@@ -212,7 +212,7 @@ public class MBORealTimeProvider extends ExternalLiveBaseProvider {
         double pips = PriceConverter.getPriceStep(orderbookConfiguration.getCurrencyPair(), DEFAULT_RAW_ORDER_BOOK_PRICE_PRECISION);
 
         int amountMultiplier = amountMultipliers.get(orderbookConfiguration.getCurrencyPair());
-        InstrumentInfoCrypto instrumentInfoCrypto = new InstrumentInfoCrypto(symbol, exchange, type, pips, 1, "", amountMultiplier);
+        InstrumentInfoCrypto instrumentInfoCrypto = new InstrumentInfoCrypto(symbol, exchange, type, pips, 1, "", false, amountMultiplier);
         instrumentListeners.forEach(i -> i.onInstrumentAdded(alias, instrumentInfoCrypto));
 
         OrderByOrderBook orderByOrderBook = new OrderByOrderBook();
